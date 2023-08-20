@@ -10,6 +10,111 @@ export default class MihoYoApi {
   DEVICE_ID = utils.randomString(32).toUpperCase();
   DEVICE_NAME = utils.randomString(_.random(1, 10));
 
+
+  async srWeChatListTasks (): Promise<any> {
+    const url = "https://api-takumi.mihoyo.com/event/pointsmall/task/index";
+    let res = await superagent
+        .get(url)
+        .set(this._getWeChatHeader())
+        .timeout(10000);
+    let resObj = JSON.parse(res.text);
+    logger.debug(`WeChatListTasks: ${res.text}`);
+    return resObj;
+  }
+
+  async srCompleteWeChatTask(id: string): Promise<any> {
+    const url = "https://api-takumi.mihoyo.com/event/pointsmall/task/finish";
+    const signPostData = {
+      id:id
+    }
+
+    let res = await superagent
+        .post(url)
+        .set(this._getWeChatHeader())
+        .timeout(10000)
+        .send(JSON.stringify(signPostData));
+    let resObj = JSON.parse(res.text);
+    logger.debug(`srCompleteWeChatTask: ${res.text}`);
+
+    return resObj;
+  }
+
+  async srCompleteWeChatTasks(): Promise<any> {
+    let obj = await this.srWeChatListTasks();
+    for(let item of obj.data.list){
+      if(item.state!="TaskInit"){
+        logger.info(`正在完成任务: ${item.name} [跳过]`)
+        continue;
+      }
+      logger.info(`正在完成任务: ${item.name}`)
+      await this.srCompleteWeChatTask(item.id);
+      await utils.randomSleepAsync();
+    }
+  }
+
+  async srCollectWeChatTaskAward(id: string): Promise<any> {
+    const url = "https://api-takumi.mihoyo.com/event/pointsmall/task/award/receive";
+    const signPostData = {
+      id:id
+    }
+
+    let res = await superagent
+        .post(url)
+        .set(this._getWeChatHeader())
+        .timeout(10000)
+        .send(JSON.stringify(signPostData));
+    let resObj = JSON.parse(res.text);
+    logger.debug(`srCollectWeChatTaskAward: ${res.text}`);
+
+    return resObj;
+  }
+
+  async srCollectWeChatTaskAwards(): Promise<any> {
+    let obj = await this.srWeChatListTasks();
+    for(let item of obj.data.list){
+      if(item.state!="TaskWait"){
+        logger.info(`正在收集任务奖励: [${item.name}]} [跳过]`)
+        continue;
+      }
+      logger.info(`正在收集任务奖励: [${item.name}]}`)
+      await this.srCollectWeChatTaskAward(item.id);
+      await utils.randomSleepAsync();
+    }
+  }
+
+  async srEatWeChatTasks(): Promise<any>{
+    await this.srCompleteWeChatTasks();
+    await this.srCollectWeChatTaskAwards();
+    return {
+      message:"OK"
+    };
+  }
+
+  async lunaSign (): Promise<any> {
+    const url = "https://api-takumi.mihoyo.com/event/luna/sign";
+    const signPostData = {
+      act_id: "e202304121516551",
+      region: "prod_gf_cn",
+      uid: process.env.SR_UID,
+      lang: "zh-cn"
+    }
+
+    let res = await superagent
+        .post(url)
+        .set(this._getHeaderLunaSign(JSON.stringify(signPostData)))
+        .timeout(10000)
+        .send(JSON.stringify(signPostData));
+    let resObj = JSON.parse(res.text);
+    if(resObj.data!=null){
+      if(resObj.data.is_risk){
+        logger.error(`LunaSign: 需要输入验证码`);
+      }
+    }
+    logger.debug(`LunaSign: ${res.text}`);
+
+    return resObj;
+  }
+
   async forumSign (forumId: string): Promise<any> {
     const url = "https://api-takumi.mihoyo.com/apihub/app/api/signIn";
     const signPostData = { gids: forumId };
@@ -78,7 +183,7 @@ export default class MihoYoApi {
     }
 
     return {
-      'Cookie': process.env.COOKIE_STRING,
+      'Cookie': process.env.S_COOKIE_STRING,
       "Content-Type": "application/json",
       "User-Agent": "okhttp/4.8.0",
       'Referer': "https://app.mihoyo.com",
@@ -91,6 +196,33 @@ export default class MihoYoApi {
       "x-rpc-channel": "miyousheluodi",
       "x-rpc-sys_version": "6.0.1",
       DS,
+    };
+  }
+  _getHeaderLunaSign (b?: string) {
+    const timestamp = Math.floor(Date.now() / 1000);
+
+    // Android sign
+    const randomInt = Math.floor(Math.random() * (200000 - 100001) + 100001);
+    let sign = md5(`salt=t0qEgfub6cvueAPgR5m9aQWWVciEer7v&t=${timestamp}&r=${randomInt}&b=${b}&q=`);
+    let DS = `${timestamp},${randomInt},${sign}`;
+
+    return {
+      'Cookie': process.env.L_COOKIE_STRING,
+      "Content-Type": "application/json",
+      "User-Agent": "Mozilla/5.0 (iPad; CPU OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.56.1",
+      'Referer': "https://webstatic.mihoyo.com/",
+      'Host': "api-takumi.mihoyo.com",
+      "x-rpc-device_id": this.DEVICE_ID,
+      "x-rpc-app_version": "2.56.1",
+      "x-rpc-client_type": "5",
+      DS,
+    };
+  }
+  _getWeChatHeader () {
+    return {
+      'Cookie': process.env.WECHAT_COOKIE_STRING,
+      "Content-Type": "application/json",
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
     };
   }
 }

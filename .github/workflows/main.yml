@@ -1,4 +1,4 @@
-name: "Mihoyo SignIn"
+name: "Mihoyo StarRail SignIn"
 
 on:
   workflow_dispatch:
@@ -18,7 +18,10 @@ jobs:
       - name: run sign
         run: node dist/main.js
         env:
-          COOKIE_STRING: ${{secrets.COOKIE_STRING}}
+          S_COOKIE_STRING: ${{secrets.S_COOKIE_STRING}}
+          L_COOKIE_STRING: ${{secrets.L_COOKIE_STRING}}
+          WECHAT_COOKIE_STRING: ${{secrets.WECHAT_COOKIE_STRING}}
+          SR_UID: ${{secrets.SR_UID}}
           QY_WECHAT: ${{secrets.QY_WECHAT}}
       - uses: actions/upload-artifact@v2
         with:

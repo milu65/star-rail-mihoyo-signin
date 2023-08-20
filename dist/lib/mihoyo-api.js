@@ -23,6 +23,111 @@ class MihoYoApi {
         this.DEVICE_ID = utils_1.default.randomString(32).toUpperCase();
         this.DEVICE_NAME = utils_1.default.randomString(lodash_1.default.random(1, 10));
     }
+    srWeChatListTasks() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const url = "https://api-takumi.mihoyo.com/event/pointsmall/task/index";
+            let res = yield superagent_1.default
+                .get(url)
+                .set(this._getWeChatHeader())
+                .timeout(10000);
+            let resObj = JSON.parse(res.text);
+            logger_1.default.debug(`WeChatListTasks: ${res.text}`);
+            return resObj;
+        });
+    }
+    srCompleteWeChatTask(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const url = "https://api-takumi.mihoyo.com/event/pointsmall/task/finish";
+            const signPostData = {
+                id: id
+            };
+            let res = yield superagent_1.default
+                .post(url)
+                .set(this._getWeChatHeader())
+                .timeout(10000)
+                .send(JSON.stringify(signPostData));
+            let resObj = JSON.parse(res.text);
+            logger_1.default.debug(`srCompleteWeChatTask: ${res.text}`);
+            return resObj;
+        });
+    }
+    srCompleteWeChatTasks() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let obj = yield this.srWeChatListTasks();
+            for (let item of obj.data.list) {
+                if (item.state != "TaskInit") {
+                    logger_1.default.info(`正在完成任务: ${item.name} [跳过]`);
+                    continue;
+                }
+                logger_1.default.info(`正在完成任务: ${item.name}`);
+                yield this.srCompleteWeChatTask(item.id);
+                yield utils_1.default.randomSleepAsync();
+            }
+        });
+    }
+    srCollectWeChatTaskAward(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const url = "https://api-takumi.mihoyo.com/event/pointsmall/task/award/receive";
+            const signPostData = {
+                id: id
+            };
+            let res = yield superagent_1.default
+                .post(url)
+                .set(this._getWeChatHeader())
+                .timeout(10000)
+                .send(JSON.stringify(signPostData));
+            let resObj = JSON.parse(res.text);
+            logger_1.default.debug(`srCollectWeChatTaskAward: ${res.text}`);
+            return resObj;
+        });
+    }
+    srCollectWeChatTaskAwards() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let obj = yield this.srWeChatListTasks();
+            for (let item of obj.data.list) {
+                if (item.state != "TaskWait") {
+                    logger_1.default.info(`正在收集任务奖励: [${item.name}]} [跳过]`);
+                    continue;
+                }
+                logger_1.default.info(`正在收集任务奖励: [${item.name}]}`);
+                yield this.srCollectWeChatTaskAward(item.id);
+                yield utils_1.default.randomSleepAsync();
+            }
+        });
+    }
+    srEatWeChatTasks() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.srCompleteWeChatTasks();
+            yield this.srCollectWeChatTaskAwards();
+            return {
+                message: "OK"
+            };
+        });
+    }
+    lunaSign() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const url = "https://api-takumi.mihoyo.com/event/luna/sign";
+            const signPostData = {
+                act_id: "e202304121516551",
+                region: "prod_gf_cn",
+                uid: process.env.SR_UID,
+                lang: "zh-cn"
+            };
+            let res = yield superagent_1.default
+                .post(url)
+                .set(this._getHeaderLunaSign(JSON.stringify(signPostData)))
+                .timeout(10000)
+                .send(JSON.stringify(signPostData));
+            let resObj = JSON.parse(res.text);
+            if (resObj.data != null) {
+                if (resObj.data.is_risk) {
+                    logger_1.default.error(`LunaSign: 需要输入验证码`);
+                }
+            }
+            logger_1.default.debug(`LunaSign: ${res.text}`);
+            return resObj;
+        });
+    }
     forumSign(forumId) {
         return __awaiter(this, void 0, void 0, function* () {
             const url = "https://api-takumi.mihoyo.com/apihub/app/api/signIn";
@@ -89,7 +194,7 @@ class MihoYoApi {
             DS = `${timestamp},${randomInt},${sign}`;
         }
         return {
-            'Cookie': process.env.COOKIE_STRING,
+            'Cookie': process.env.S_COOKIE_STRING,
             "Content-Type": "application/json",
             "User-Agent": "okhttp/4.8.0",
             'Referer': "https://app.mihoyo.com",
@@ -102,6 +207,31 @@ class MihoYoApi {
             "x-rpc-channel": "miyousheluodi",
             "x-rpc-sys_version": "6.0.1",
             DS,
+        };
+    }
+    _getHeaderLunaSign(b) {
+        const timestamp = Math.floor(Date.now() / 1000);
+        // Android sign
+        const randomInt = Math.floor(Math.random() * (200000 - 100001) + 100001);
+        let sign = (0, md5_1.default)(`salt=t0qEgfub6cvueAPgR5m9aQWWVciEer7v&t=${timestamp}&r=${randomInt}&b=${b}&q=`);
+        let DS = `${timestamp},${randomInt},${sign}`;
+        return {
+            'Cookie': process.env.L_COOKIE_STRING,
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (iPad; CPU OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.56.1",
+            'Referer': "https://webstatic.mihoyo.com/",
+            'Host': "api-takumi.mihoyo.com",
+            "x-rpc-device_id": this.DEVICE_ID,
+            "x-rpc-app_version": "2.56.1",
+            "x-rpc-client_type": "5",
+            DS,
+        };
+    }
+    _getWeChatHeader() {
+        return {
+            'Cookie': process.env.WECHAT_COOKIE_STRING,
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
         };
     }
 }

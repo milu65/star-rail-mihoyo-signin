@@ -53,11 +53,22 @@ const RETRY_OPTIONS = {
     maxTimeout: 10000
 };
 // Runtime environment check
-if (lodash_1.default.isEmpty(process.env.COOKIE_STRING)) {
-    logger_1.default.error('环境变量 COOKIE_STRING 未配置，退出...');
+if (lodash_1.default.isEmpty(process.env.S_COOKIE_STRING)) {
+    logger_1.default.error('环境变量 S_COOKIE_STRING 未配置，退出...');
     process.exit();
 }
-;
+if (lodash_1.default.isEmpty(process.env.L_COOKIE_STRING)) {
+    logger_1.default.error('环境变量 L_COOKIE_STRING 未配置，退出...');
+    process.exit();
+}
+if (lodash_1.default.isEmpty(process.env.WECHAT_COOKIE_STRING)) {
+    logger_1.default.error('环境变量 WECHAT_COOKIE_STRING 未配置，退出...');
+    process.exit();
+}
+if (lodash_1.default.isEmpty(process.env.SR_UID)) {
+    logger_1.default.error('环境变量 SR_UID 未配置，退出...');
+    process.exit();
+}
 // Register Notifier 
 logger_1.default.info(`开始注册通知`);
 const notifierList = [];
@@ -73,29 +84,70 @@ const sendReport = (message) => {
 };
 const miHoYoApi = new mihoyo_api_1.default();
 logger_1.default.info(`DeviceID: ${miHoYoApi.DEVICE_ID} ${miHoYoApi.DEVICE_NAME}`);
-let resultMessage = `**Mihoyo 签到  ${TODAY_DATE}**\n\n`;
+let resultMessage = `**Star Rail Mihoyo 签到  ${TODAY_DATE}**\n\n`;
 (() => __awaiter(void 0, void 0, void 0, function* () {
-    // Execute task
+    //WeChat tasks
+    resultMessage += `**WeChat StarRail Sign**\n`;
+    const wechatTaskName = "StarRail微信公众号任务";
+    try {
+        let resObj = yield (0, promise_retry_1.default)((retry, number) => {
+            logger_1.default.info(`开始${wechatTaskName} 尝试次数: ${number}`);
+            return miHoYoApi.srEatWeChatTasks().catch((e) => {
+                logger_1.default.error(`${wechatTaskName}失败: [${e.message}] 尝试次数: ${number}`);
+                return retry(e);
+            });
+        }, RETRY_OPTIONS);
+        logger_1.default.info(`${wechatTaskName}结果: [${resObj.message}]`);
+        resultMessage += `${wechatTaskName}: [${resObj.message}]\n`;
+    }
+    catch (e) {
+        logger_1.default.error(`${wechatTaskName}失败 [${e.message}]`);
+        resultMessage += `${wechatTaskName}失败: [${e.message}]\n`;
+    }
+    yield utils_1.default.randomSleepAsync();
     for (let forum of ForumData.default) {
         resultMessage += `**${forum.name}**\n`;
+        const taskName = "Luna签到";
         try {
-            // 1 BBS Sign
+            // 0 Luna Sign
             let resObj = yield (0, promise_retry_1.default)((retry, number) => {
-                logger_1.default.info(`开始签到: [${forum.name}] 尝试次数: ${number}`);
-                return miHoYoApi.forumSign(forum.forumId).catch((e) => {
-                    logger_1.default.error(`${forum.name} 签到失败: [${e.message}] 尝试次数: ${number}`);
+                logger_1.default.info(`开始${taskName}: [${forum.name}] 尝试次数: ${number}`);
+                return miHoYoApi.lunaSign().catch((e) => {
+                    logger_1.default.error(`${forum.name} ${taskName}失败: [${e.message}] 尝试次数: ${number}`);
                     return retry(e);
                 });
             }, RETRY_OPTIONS);
-            logger_1.default.info(`${forum.name} 签到结果: [${resObj.message}]`);
-            resultMessage += `签到: [${resObj.message}]\n`;
+            logger_1.default.info(`${forum.name} ${taskName}结果: [${resObj.message}]`);
+            resultMessage += `${taskName}: [${resObj.message}]\n`;
         }
         catch (e) {
-            logger_1.default.error(`${forum.name} 签到失败 [${e.message}]`);
-            resultMessage += `签到失败: [${e.message}]\n`;
+            logger_1.default.error(`${forum.name} ${taskName}失败 [${e.message}]`);
+            resultMessage += `${taskName}失败: [${e.message}]\n`;
         }
         yield utils_1.default.randomSleepAsync();
     }
+    // Execute task
+    // for (let forum of (ForumData as any).default) {
+    //   resultMessage += `**${forum.name}**\n`
+    //
+    //   try {
+    //     // 1 BBS Sign
+    //     let resObj = await promiseRetry((retry: any, number: number) => {
+    //       logger.info(`开始签到: [${forum.name}] 尝试次数: ${number}`);
+    //       return miHoYoApi.forumSign(forum.forumId).catch((e) => {
+    //         logger.error(`${forum.name} 签到失败: [${e.message}] 尝试次数: ${number}`);
+    //         return  retry(e);
+    //       });
+    //     }, RETRY_OPTIONS);
+    //     logger.info(`${forum.name} 签到结果: [${resObj.message}]`);
+    //     resultMessage += `签到: [${resObj.message}]\n`;
+    //   } catch(e) {
+    //     logger.error(`${forum.name} 签到失败 [${e.message}]`);
+    //     resultMessage += `签到失败: [${e.message}]\n`;
+    //   }
+    //
+    //   await utils.randomSleepAsync();
+    // }
     // Execute task
     for (let forum of ForumData.default) {
         resultMessage += `\n**${forum.name}**\n`;
