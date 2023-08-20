@@ -142,7 +142,7 @@ let resultMessage = `**Star Rail Mihoyo 签到  ${TODAY_DATE}**\n\n`;
       }, RETRY_OPTIONS);
       logger.info(`${forum.name} 读取列表成功 [${resObj.message}]，读取到 [${resObj.data.list.length}] 条记录`);
 
-      let postList = resObj.data.list;
+      let postList = resObj.data.list.slice(0,10); // 限读10条
       for (let post of postList) {
         post = post.post;
 

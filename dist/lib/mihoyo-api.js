@@ -86,10 +86,10 @@ class MihoYoApi {
             let obj = yield this.srWeChatListTasks();
             for (let item of obj.data.list) {
                 if (item.state != "TaskWait") {
-                    logger_1.default.info(`正在收集任务奖励: [${item.name}]} [跳过]`);
+                    logger_1.default.info(`正在收集任务奖励: ${item.name} [跳过]`);
                     continue;
                 }
-                logger_1.default.info(`正在收集任务奖励: [${item.name}]}`);
+                logger_1.default.info(`正在收集任务奖励: ${item.name}`);
                 yield this.srCollectWeChatTaskAward(item.id);
                 yield utils_1.default.randomSleepAsync();
             }
