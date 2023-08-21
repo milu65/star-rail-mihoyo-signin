@@ -126,29 +126,27 @@ let resultMessage = `**Star Rail Mihoyo 签到  ${TODAY_DATE}**\n\n`;
         }
         yield utils_1.default.randomSleepAsync();
     }
-    // Execute task
-    // for (let forum of (ForumData as any).default) {
-    //   resultMessage += `**${forum.name}**\n`
-    //
-    //   try {
-    //     // 1 BBS Sign
-    //     let resObj = await promiseRetry((retry: any, number: number) => {
-    //       logger.info(`开始签到: [${forum.name}] 尝试次数: ${number}`);
-    //       return miHoYoApi.forumSign(forum.forumId).catch((e) => {
-    //         logger.error(`${forum.name} 签到失败: [${e.message}] 尝试次数: ${number}`);
-    //         return  retry(e);
-    //       });
-    //     }, RETRY_OPTIONS);
-    //     logger.info(`${forum.name} 签到结果: [${resObj.message}]`);
-    //     resultMessage += `签到: [${resObj.message}]\n`;
-    //   } catch(e) {
-    //     logger.error(`${forum.name} 签到失败 [${e.message}]`);
-    //     resultMessage += `签到失败: [${e.message}]\n`;
-    //   }
-    //
-    //   await utils.randomSleepAsync();
-    // }
-    // Execute task
+    // Execute BBS Sign task
+    for (let forum of ForumData.default) {
+        resultMessage += `**${forum.name}**\n`;
+        try {
+            let resObj = yield (0, promise_retry_1.default)((retry, number) => {
+                logger_1.default.info(`开始签到: [${forum.name}] 尝试次数: ${number}`);
+                return miHoYoApi.forumSign(forum.id).catch((e) => {
+                    logger_1.default.error(`${forum.name} 签到失败: [${e.message}] 尝试次数: ${number}`);
+                    return retry(e);
+                });
+            }, RETRY_OPTIONS);
+            logger_1.default.info(`${forum.name} 签到结果: [${resObj.message}]`);
+            resultMessage += `签到: [${resObj.message}]\n`;
+        }
+        catch (e) {
+            logger_1.default.error(`${forum.name} 签到失败 [${e.message}]`);
+            resultMessage += `签到失败: [${e.message}]\n`;
+        }
+        yield utils_1.default.randomSleepAsync();
+    }
+    // Execute BBS post related task
     for (let forum of ForumData.default) {
         resultMessage += `\n**${forum.name}**\n`;
         try {

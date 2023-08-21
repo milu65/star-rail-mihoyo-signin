@@ -9,6 +9,8 @@ const APP_VERSION = "2.34.1";
 export default class MihoYoApi {
   DEVICE_ID = utils.randomString(32).toUpperCase();
   DEVICE_NAME = utils.randomString(_.random(1, 10));
+  USER_AGENT_MIYOUSHE = "Hyperion/360 CFNetwork/1408.0.4 Darwin/22.5.0";
+  USER_AGENT_WECHAT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36";
 
 
   async srWeChatListTasks (): Promise<any> {
@@ -116,11 +118,11 @@ export default class MihoYoApi {
   }
 
   async forumSign (forumId: string): Promise<any> {
-    const url = "https://api-takumi.mihoyo.com/apihub/app/api/signIn";
+    const url = "https://bbs-api.miyoushe.com/apihub/app/api/signIn";
     const signPostData = { gids: forumId };
     let res = await superagent
       .post(url)
-      .set(this._getHeader("signIn", JSON.stringify(signPostData)))
+      .set(this._getHeaderBBSSign(JSON.stringify(signPostData)))
       .timeout(10000)
       .send(JSON.stringify(signPostData));
     let resObj = JSON.parse(res.text);
@@ -198,6 +200,32 @@ export default class MihoYoApi {
       DS,
     };
   }
+
+  _getHeaderBBSSign(b?: string){
+    const timestamp = Math.floor(Date.now() / 1000);
+
+    // Android sign
+    const randomInt = Math.floor(Math.random() * (200000 - 100001) + 100001);
+    let sign = md5(`salt=t0qEgfub6cvueAPgR5m9aQWWVciEer7v&t=${timestamp}&r=${randomInt}&b=${b}&q=`);
+    let DS = `${timestamp},${randomInt},${sign}`;
+
+    return {
+      'Cookie': process.env.S_COOKIE_STRING,
+      "Content-Type": "application/json",
+      "User-Agent": this.USER_AGENT_MIYOUSHE,
+      'Referer': "https://app.mihoyo.com",
+      'Host': "bbs-api.miyoushe.com",
+      "x-rpc-device_id": this.DEVICE_ID,
+      "x-rpc-app_version": "2.36.1",
+      "x-rpc-device_name": this.DEVICE_NAME,
+      "x-rpc-client_type": "2", // 1 - iOS, 2 - Android, 4 - Web
+      "x-rpc-device_model": "Mi 10",
+      "x-rpc-sys_version": "16.5.1",
+      DS,
+    };
+
+  }
+
   _getHeaderLunaSign (b?: string) {
     const timestamp = Math.floor(Date.now() / 1000);
 
@@ -218,11 +246,12 @@ export default class MihoYoApi {
       DS,
     };
   }
+
   _getWeChatHeader () {
     return {
       'Cookie': process.env.WECHAT_COOKIE_STRING,
       "Content-Type": "application/json",
-      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+      "User-Agent": this.USER_AGENT_WECHAT,
     };
   }
 }

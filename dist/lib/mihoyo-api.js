@@ -22,6 +22,8 @@ class MihoYoApi {
     constructor() {
         this.DEVICE_ID = utils_1.default.randomString(32).toUpperCase();
         this.DEVICE_NAME = utils_1.default.randomString(lodash_1.default.random(1, 10));
+        this.USER_AGENT_MIYOUSHE = "Hyperion/360 CFNetwork/1408.0.4 Darwin/22.5.0";
+        this.USER_AGENT_WECHAT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36";
     }
     srWeChatListTasks() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -130,11 +132,11 @@ class MihoYoApi {
     }
     forumSign(forumId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const url = "https://api-takumi.mihoyo.com/apihub/app/api/signIn";
+            const url = "https://bbs-api.miyoushe.com/apihub/app/api/signIn";
             const signPostData = { gids: forumId };
             let res = yield superagent_1.default
                 .post(url)
-                .set(this._getHeader("signIn", JSON.stringify(signPostData)))
+                .set(this._getHeaderBBSSign(JSON.stringify(signPostData)))
                 .timeout(10000)
                 .send(JSON.stringify(signPostData));
             let resObj = JSON.parse(res.text);
@@ -209,6 +211,27 @@ class MihoYoApi {
             DS,
         };
     }
+    _getHeaderBBSSign(b) {
+        const timestamp = Math.floor(Date.now() / 1000);
+        // Android sign
+        const randomInt = Math.floor(Math.random() * (200000 - 100001) + 100001);
+        let sign = (0, md5_1.default)(`salt=t0qEgfub6cvueAPgR5m9aQWWVciEer7v&t=${timestamp}&r=${randomInt}&b=${b}&q=`);
+        let DS = `${timestamp},${randomInt},${sign}`;
+        return {
+            'Cookie': process.env.S_COOKIE_STRING,
+            "Content-Type": "application/json",
+            "User-Agent": this.USER_AGENT_MIYOUSHE,
+            'Referer': "https://app.mihoyo.com",
+            'Host': "bbs-api.miyoushe.com",
+            "x-rpc-device_id": this.DEVICE_ID,
+            "x-rpc-app_version": "2.36.1",
+            "x-rpc-device_name": this.DEVICE_NAME,
+            "x-rpc-client_type": "2",
+            "x-rpc-device_model": "Mi 10",
+            "x-rpc-sys_version": "16.5.1",
+            DS,
+        };
+    }
     _getHeaderLunaSign(b) {
         const timestamp = Math.floor(Date.now() / 1000);
         // Android sign
@@ -231,7 +254,7 @@ class MihoYoApi {
         return {
             'Cookie': process.env.WECHAT_COOKIE_STRING,
             "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+            "User-Agent": this.USER_AGENT_WECHAT,
         };
     }
 }
