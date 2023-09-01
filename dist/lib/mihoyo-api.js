@@ -241,12 +241,12 @@ class MihoYoApi {
         return {
             'Cookie': process.env.L_COOKIE_STRING,
             "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (iPad; CPU OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.56.1",
+            "User-Agent": this.USER_AGENT_MIYOUSHE,
             'Referer': "https://webstatic.mihoyo.com/",
             'Host': "api-takumi.mihoyo.com",
             "x-rpc-device_id": this.DEVICE_ID,
             "x-rpc-app_version": "2.56.1",
-            "x-rpc-client_type": "5",
+            "x-rpc-client_type": "2",
             DS,
         };
     }
