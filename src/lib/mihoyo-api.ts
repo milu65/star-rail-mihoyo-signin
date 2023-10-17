@@ -84,9 +84,54 @@ export default class MihoYoApi {
     }
   }
 
+
+  async srCollectWeChatCumulateSignAward(id: string): Promise<any> {
+    const url = "https://api-takumi.mihoyo.com/event/pointsmall/sign/award/receive";
+    const signPostData = {
+      id:id
+    }
+
+    let res = await superagent
+        .post(url)
+        .set(this._getWeChatHeader())
+        .timeout(10000)
+        .send(JSON.stringify(signPostData));
+    let resObj = JSON.parse(res.text);
+    logger.debug(`srCollectWeChatCumulateSignAward: ${res.text}`);
+
+    return resObj;
+  }
+
+
+  async srWechatListCumulateSignAwards(): Promise<any>{
+    const url = "https://api-takumi.mihoyo.com/event/pointsmall/sign/index";
+    let res = await superagent
+        .get(url)
+        .set(this._getWeChatHeader())
+        .timeout(10000);
+    let resObj = JSON.parse(res.text);
+    logger.debug(`WeChatCumulateSignAwards: ${res.text}`);
+    return resObj;
+  }
+
+
+  async srCollectWeChatCumulateSignAwards(): Promise<any> {
+    let obj = await this.srWechatListCumulateSignAwards();
+    for(let item of obj.data.list){
+      if(item.state!="SignTaskStateWait"){
+        logger.info(`正在收集累签奖励: ${item.name} [跳过]`)
+        continue;
+      }
+      logger.info(`正在收集累签奖励: ${item.name}`)
+      await this.srCollectWeChatCumulateSignAward(item.id);
+      await utils.randomSleepAsync();
+    }
+  }
+
   async srEatWeChatTasks(): Promise<any>{
     await this.srCompleteWeChatTasks();
     await this.srCollectWeChatTaskAwards();
+    await this.srCollectWeChatCumulateSignAwards();
     return {
       message:"OK"
     };

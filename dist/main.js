@@ -105,6 +105,7 @@ let resultMessage = `**Star Rail Mihoyo 签到  ${TODAY_DATE}**\n\n`;
         resultMessage += `${wechatTaskName}失败: [${e.message}]\n`;
     }
     yield utils_1.default.randomSleepAsync();
+    //Luna sign task
     for (let forum of ForumData.default) {
         resultMessage += `**${forum.name}**\n`;
         const taskName = "Luna签到-双数日";

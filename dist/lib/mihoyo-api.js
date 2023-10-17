@@ -97,10 +97,53 @@ class MihoYoApi {
             }
         });
     }
+    srCollectWeChatCumulateSignAward(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const url = "https://api-takumi.mihoyo.com/event/pointsmall/sign/award/receive";
+            const signPostData = {
+                id: id
+            };
+            let res = yield superagent_1.default
+                .post(url)
+                .set(this._getWeChatHeader())
+                .timeout(10000)
+                .send(JSON.stringify(signPostData));
+            let resObj = JSON.parse(res.text);
+            logger_1.default.debug(`srCollectWeChatCumulateSignAward: ${res.text}`);
+            return resObj;
+        });
+    }
+    srWechatListCumulateSignAwards() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const url = "https://api-takumi.mihoyo.com/event/pointsmall/sign/index";
+            let res = yield superagent_1.default
+                .get(url)
+                .set(this._getWeChatHeader())
+                .timeout(10000);
+            let resObj = JSON.parse(res.text);
+            logger_1.default.debug(`WeChatCumulateSignAwards: ${res.text}`);
+            return resObj;
+        });
+    }
+    srCollectWeChatCumulateSignAwards() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let obj = yield this.srWechatListCumulateSignAwards();
+            for (let item of obj.data.list) {
+                if (item.state != "SignTaskStateWait") {
+                    logger_1.default.info(`正在收集累签奖励: ${item.name} [跳过]`);
+                    continue;
+                }
+                logger_1.default.info(`正在收集累签奖励: ${item.name}`);
+                yield this.srCollectWeChatCumulateSignAward(item.id);
+                yield utils_1.default.randomSleepAsync();
+            }
+        });
+    }
     srEatWeChatTasks() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.srCompleteWeChatTasks();
             yield this.srCollectWeChatTaskAwards();
+            yield this.srCollectWeChatCumulateSignAwards();
             return {
                 message: "OK"
             };
