@@ -130,10 +130,10 @@ class MihoYoApi {
             let obj = yield this.srWechatListCumulateSignAwards();
             for (let item of obj.data.list) {
                 if (item.state != "SignTaskStateWait") {
-                    logger_1.default.info(`正在收集累签奖励: ${item.name} [跳过]`);
+                    logger_1.default.info(`正在收集累签奖励: 累积签到${item.award_need_day}天 [跳过]`);
                     continue;
                 }
-                logger_1.default.info(`正在收集累签奖励: ${item.name}`);
+                logger_1.default.info(`正在收集累签奖励: 累积签到${item.award_need_day}天`);
                 yield this.srCollectWeChatCumulateSignAward(item.id);
                 yield utils_1.default.randomSleepAsync();
             }
