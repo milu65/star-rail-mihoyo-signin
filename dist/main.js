@@ -107,7 +107,10 @@ let resultMessage = `**Star Rail Mihoyo 签到  ${TODAY_DATE}**\n\n`;
     yield utils_1.default.randomSleepAsync();
     for (let forum of ForumData.default) {
         resultMessage += `**${forum.name}**\n`;
-        const taskName = "Luna签到";
+        const taskName = "Luna签到-双数日";
+        if (new Date().getDay() % 2 == 1) {
+            break;
+        }
         try {
             // 0 Luna Sign
             let resObj = yield (0, promise_retry_1.default)((retry, number) => {

@@ -82,7 +82,10 @@ let resultMessage = `**Star Rail Mihoyo 签到  ${TODAY_DATE}**\n\n`;
 
   for (let forum of (ForumData as any).default) {
     resultMessage += `**${forum.name}**\n`
-    const taskName = "Luna签到"
+    const taskName = "Luna签到-双数日"
+    if(new Date().getDay()%2==1){
+      break;
+    }
     try {
       // 0 Luna Sign
       let resObj = await promiseRetry((retry: any, number: number) => {
